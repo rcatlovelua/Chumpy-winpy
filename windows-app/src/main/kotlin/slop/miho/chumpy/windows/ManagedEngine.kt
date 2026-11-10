@@ -19,9 +19,9 @@ internal class ManagedEngine {
         val stdout = File(logDir, "engine-out.log")
         val stderr = File(logDir, "engine-error.log")
         val script = """
-            $ErrorActionPreference = 'Stop'
-            $p = Start-Process -FilePath $env:CHUMPY_ENGINE_EXE -ArgumentList @('run','-c',$env:CHUMPY_ENGINE_CONFIG) -WorkingDirectory $env:CHUMPY_ENGINE_DIR -WindowStyle Hidden -PassThru -RedirectStandardOutput $env:CHUMPY_ENGINE_STDOUT -RedirectStandardError $env:CHUMPY_ENGINE_STDERR
-            [Console]::WriteLine($p.Id)
+            ${'$'}ErrorActionPreference = 'Stop'
+            ${'$'}p = Start-Process -FilePath ${'$'}env:CHUMPY_ENGINE_EXE -ArgumentList @('run','-c', ('"' + ${'$'}env:CHUMPY_ENGINE_CONFIG + '"')) -WorkingDirectory ${'$'}env:CHUMPY_ENGINE_DIR -WindowStyle Hidden -PassThru -RedirectStandardOutput ${'$'}env:CHUMPY_ENGINE_STDOUT -RedirectStandardError ${'$'}env:CHUMPY_ENGINE_STDERR
+            [Console]::WriteLine(${'$'}p.Id)
         """.trimIndent()
         val encoded = java.util.Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
         val launcher = ProcessBuilder(
