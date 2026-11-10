@@ -25,7 +25,7 @@ internal class ManagedEngine {
         """.trimIndent()
         val encoded = java.util.Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
         val launcher = ProcessBuilder(
-            "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded
         ).redirectErrorStream(true)
         launcher.environment().apply {
             put("CHUMPY_ENGINE_EXE", executable.absolutePath)
@@ -59,7 +59,7 @@ internal class ManagedEngine {
 
     private fun isProcessRunning(pid: Long): Boolean {
         val check = ProcessBuilder(
-            "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command",
             "if (Get-Process -Id $pid -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
         ).start()
         return check.waitFor(5, TimeUnit.SECONDS) && check.exitValue() == 0
