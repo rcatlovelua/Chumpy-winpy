@@ -17,6 +17,21 @@ private enum class ConnectionMode(val label: String) {
 }
 fun main() = SwingUtilities.invokeLater {
     runCatching { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()) }
+    UIManager.put("Panel.background", Color(0x13, 0x15, 0x1A))
+    UIManager.put("TabbedPane.background", Color(0x19, 0x1C, 0x23))
+    UIManager.put("TabbedPane.foreground", Color(0xE8, 0xEA, 0xEF))
+    UIManager.put("Button.background", Color(0x2A, 0x2E, 0x37))
+    UIManager.put("Button.foreground", Color(0xF4, 0xF5, 0xF7))
+    UIManager.put("ComboBox.background", Color(0x1D, 0x20, 0x27))
+    UIManager.put("ComboBox.foreground", Color(0xF4, 0xF5, 0xF7))
+    UIManager.put("TextField.background", Color(0x1D, 0x20, 0x27))
+    UIManager.put("TextField.foreground", Color(0xF4, 0xF5, 0xF7))
+    UIManager.put("List.background", Color(0x1D, 0x20, 0x27))
+    UIManager.put("List.foreground", Color(0xF4, 0xF5, 0xF7))
+    UIManager.put("List.selectionBackground", Color(0x3C, 0x50, 0x78))
+    UIManager.put("List.selectionForeground", Color(0xFF, 0xFF, 0xFF))
+    UIManager.put("ScrollPane.background", Color(0x13, 0x15, 0x1A))
+    UIManager.put("Viewport.background", Color(0x1D, 0x20, 0x27))
     ChumpyWindow().isVisible = true
 }
 private class ChumpyWindow : JFrame("Chumpy — Windows") {
@@ -154,7 +169,7 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
             add(JLabel("Подключение").apply { font = Font("Segoe UI", Font.BOLD, 20); foreground = Color(0xF4, 0xF5, 0xF7) })
             add(Box.createVerticalStrut(12))
             add(JLabel("Режим").apply { foreground = Color(0xC8, 0xCC, 0xD3) })
-            add(mode)
+            add(JLabel("Выбранный режим меняется на главной странице.").apply { foreground = Color(0x9A, 0xA0, 0xAA) })
             add(Box.createVerticalStrut(14))
             add(JLabel("Исполняемый файл движка — Xray встроен автоматически").apply { foreground = Color(0xC8, 0xCC, 0xD3) })
             add(pathRow(enginePath, "exe"))
