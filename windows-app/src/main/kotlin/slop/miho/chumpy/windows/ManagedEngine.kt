@@ -3,43 +3,65 @@ package slop.miho.chumpy.windows
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-/** Runs a native Windows core without opening a console window. */
+/** Starts native cores through hidden PowerShell and tracks the child PID for reliable shutdown. */
 internal class ManagedEngine {
-    @Volatile private var process: Process? = null
+    @Volatile private var processId: Long? = null
 
     @Synchronized fun start(executable: File, config: File, tun: Boolean) {
         require(executable.isFile) { "Движок не найден: ${executable.path}" }
         require(config.isFile) { "JSON не найден: ${config.path}" }
-        check(process?.isAlive != true) { "Движок уже запущен" }
+        check(processId?.let(::isProcessRunning) == true || processId == null) { "Движок уже запущен" }
         if (tun) require(isAdministrator()) { "Для TUN запустите Chumpy от имени администратора." }
 
-        val log = File(config.parentFile, "chumpy-engine.log")
-        val command = listOf(executable.absolutePath, "run", "-c", config.absolutePath)
-        val builder = ProcessBuilder(command)
-            .directory(executable.parentFile)
-            .redirectErrorStream(true)
-            .redirectOutput(ProcessBuilder.Redirect.appendTo(log))
-
-        // CREATE_NO_WINDOW prevents a console flash for console-subsystem cores such as xray.exe.
-        if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
-            builder.environment()["CHUMPY_NO_CONSOLE"] = "1"
+        val logDir = File(config.parentFile, "logs").apply { mkdirs() }
+        val stdout = File(logDir, "engine-out.log")
+        val stderr = File(logDir, "engine-error.log")
+        val script = """
+            $ErrorActionPreference = 'Stop'
+            $p = Start-Process -FilePath $env:CHUMPY_ENGINE_EXE -ArgumentList @('run','-c',$env:CHUMPY_ENGINE_CONFIG) -WorkingDirectory $env:CHUMPY_ENGINE_DIR -WindowStyle Hidden -PassThru -RedirectStandardOutput $env:CHUMPY_ENGINE_STDOUT -RedirectStandardError $env:CHUMPY_ENGINE_STDERR
+            [Console]::WriteLine($p.Id)
+        """.trimIndent()
+        val encoded = java.util.Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
+        val launcher = ProcessBuilder(
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded
+        ).redirectErrorStream(true)
+        launcher.environment().apply {
+            put("CHUMPY_ENGINE_EXE", executable.absolutePath)
+            put("CHUMPY_ENGINE_CONFIG", config.absolutePath)
+            put("CHUMPY_ENGINE_DIR", executable.parentFile.absolutePath)
+            put("CHUMPY_ENGINE_STDOUT", stdout.absolutePath)
+            put("CHUMPY_ENGINE_STDERR", stderr.absolutePath)
         }
-        process = builder.start()
-        Thread.sleep(500)
-        check(process?.isAlive == true) {
-            process = null
-            "Движок завершился при запуске. Проверьте ${log.absolutePath}"
+        val result = launcher.start()
+        val output = result.inputStream.bufferedReader().readText().trim()
+        check(result.waitFor(15, TimeUnit.SECONDS) && result.exitValue() == 0) {
+            "Не удалось запустить движок скрыто: $output"
+        }
+        val pid = output.lineSequence().lastOrNull()?.trim()?.toLongOrNull()
+            ?: error("PowerShell не вернул PID процесса Xray: $output")
+        processId = pid
+        Thread.sleep(700)
+        check(isProcessRunning(pid)) {
+            processId = null
+            "Движок завершился при запуске. Логи: ${stdout.absolutePath} и ${stderr.absolutePath}"
         }
     }
 
     @Synchronized fun stop() {
-        val p = process ?: return
-        p.destroy()
-        if (!p.waitFor(3, TimeUnit.SECONDS)) {
-            p.destroyForcibly()
-            p.waitFor(2, TimeUnit.SECONDS)
+        val pid = processId ?: return
+        runCatching {
+            ProcessBuilder("taskkill.exe", "/PID", pid.toString(), "/T", "/F")
+                .redirectErrorStream(true).start().waitFor(5, TimeUnit.SECONDS)
         }
-        process = null
+        processId = null
+    }
+
+    private fun isProcessRunning(pid: Long): Boolean {
+        val check = ProcessBuilder(
+            "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+            "if (Get-Process -Id $pid -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+        ).start()
+        return check.waitFor(5, TimeUnit.SECONDS) && check.exitValue() == 0
     }
 
     private fun isAdministrator(): Boolean {
