@@ -207,12 +207,13 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
         }, BorderLayout.EAST)
     }
     private fun editHappSpoof() {
+        val saved = happSpoof.currentSettings()
         val enabled = JCheckBox("Использовать Happ User-Agent и x-заголовки", happSpoof.enabled())
-        val appVersion = JTextField("3.21.1", 18)
-        val os = JTextField("Android", 18)
-        val osVersion = JTextField("16", 18)
-        val deviceModel = JTextField("Pixel 7 Pro", 18)
-        val locale = JTextField("en", 18)
+        val appVersion = JTextField(saved.appVersion, 18)
+        val os = JTextField(saved.os, 18)
+        val osVersion = JTextField(saved.osVersion, 18)
+        val deviceModel = JTextField(saved.deviceModel, 18)
+        val locale = JTextField(saved.locale, 18)
         val fields = JPanel(java.awt.GridLayout(0, 2, 8, 8)).apply {
             add(enabled); add(JLabel("")); add(JLabel("Версия Happ")); add(appVersion)
             add(JLabel("ОС")); add(os); add(JLabel("Версия ОС")); add(osVersion)
