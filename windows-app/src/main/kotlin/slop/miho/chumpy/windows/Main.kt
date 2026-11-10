@@ -59,55 +59,126 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
         if (profilesFile.isFile) profilesFile.readLines().filter { it.isNotBlank() }.forEach(profiles::addElement)
         if (subscriptionsFile.isFile) subscriptions.addAll(subscriptionsFile.readLines().filter { it.isNotBlank() })
 
-        val root = JPanel(BorderLayout(12, 12)).apply { border = BorderFactory.createEmptyBorder(18, 18, 18, 18) }
-        root.add(JPanel(BorderLayout()).apply {
+        val root = JPanel(BorderLayout(16, 16)).apply {
+            border = BorderFactory.createEmptyBorder(22, 24, 18, 24)
+            background = Color(0x13, 0x15, 0x1A)
+        }
+        val header = JPanel(BorderLayout(12, 4)).apply {
             isOpaque = false
-            add(JLabel("Chumpy").apply { font = Font("Segoe UI", Font.BOLD, 30); foreground = Color(0xF2, 0xF4, 0xF8) }, BorderLayout.WEST)
-            add(JPanel(FlowLayout(FlowLayout.RIGHT, 8, 4)).apply {
+            add(JPanel().apply {
                 isOpaque = false
-                add(JButton().apply {
-                    fun refreshLabel() { text = if (happSpoof.enabled()) "Happ Spoof · ВКЛ" else "Happ Spoof · ВЫКЛ" }
-                    refreshLabel()
-                    addActionListener { editHappSpoof(); refreshLabel() }
-                })
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                add(JLabel("Chumpy").apply { font = Font("Segoe UI", Font.BOLD, 30); foreground = Color(0xF4, 0xF5, 0xF7) })
+                add(JLabel("Твой интернет. Твои правила.").apply { foreground = Color(0x9A, 0xA0, 0xAA); font = Font("Segoe UI", Font.PLAIN, 12) })
+            }, BorderLayout.WEST)
+            add(JButton(if (happSpoof.enabled()) "Happ Spoof · ВКЛ" else "Happ Spoof · ВЫКЛ").apply {
+                addActionListener { editHappSpoof(); text = if (happSpoof.enabled()) "Happ Spoof · ВКЛ" else "Happ Spoof · ВЫКЛ" }
             }, BorderLayout.EAST)
-        }, BorderLayout.NORTH)
-        val center = JPanel(BorderLayout(10, 10))
-        val profilePanel = JPanel(BorderLayout(6, 6)).apply {
-            border = BorderFactory.createTitledBorder("Профили и ссылки")
-            add(JScrollPane(profileList), BorderLayout.CENTER)
-            add(JPanel(FlowLayout(FlowLayout.LEFT)).apply {
+        }
+        root.add(header, BorderLayout.NORTH)
+
+        val tabs = JTabbedPane()
+        val homeTab = JPanel(BorderLayout(12, 12)).apply {
+            isOpaque = false
+            border = BorderFactory.createEmptyBorder(18, 4, 12, 4)
+            add(JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = false
+                add(JLabel("Добро пожаловать в Chumpy").apply {
+                    font = Font("Segoe UI", Font.BOLD, 24)
+                    foreground = Color(0xF4, 0xF5, 0xF7)
+                })
+                add(Box.createVerticalStrut(8))
+                add(JLabel("Подключайся к выбранному серверу одним нажатием.").apply {
+                    foreground = Color(0x9A, 0xA0, 0xAA)
+                })
+                add(Box.createVerticalStrut(24))
+                add(JPanel(BorderLayout(8, 8)).apply {
+                    background = Color(0x1D, 0x20, 0x27)
+                    border = BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(Color(0x32, 0x36, 0x40), 1, true),
+                        BorderFactory.createEmptyBorder(18, 18, 18, 18)
+                    )
+                    add(JLabel("СОСТОЯНИЕ ПОДКЛЮЧЕНИЯ").apply {
+                        foreground = Color(0x9A, 0xA0, 0xAA); font = Font("Segoe UI", Font.BOLD, 11)
+                    }, BorderLayout.NORTH)
+                    add(status.apply {
+                        horizontalAlignment = SwingConstants.LEFT
+                        foreground = Color(0xF4, 0xF5, 0xF7)
+                        font = Font("Segoe UI", Font.BOLD, 20)
+                    }, BorderLayout.CENTER)
+                })
+                add(Box.createVerticalStrut(16))
+                add(JLabel("Режим подключения").apply { foreground = Color(0xC8, 0xCC, 0xD3) })
+                add(mode)
+                add(Box.createVerticalStrut(16))
+                add(JPanel(FlowLayout(FlowLayout.LEFT, 10, 0)).apply {
+                    isOpaque = false
+                    add(JButton("Подключить").apply { addActionListener { connect() } })
+                    add(JButton("Отключить").apply { addActionListener { disconnect() } })
+                    add(JButton("Выбрать сервер").apply { addActionListener { tabs.selectedIndex = 1 } })
+                })
+            }, BorderLayout.CENTER)
+        }
+
+        val profilePanel = JPanel(BorderLayout(8, 8)).apply {
+            isOpaque = false
+            border = BorderFactory.createEmptyBorder(14, 4, 12, 4)
+            add(JScrollPane(profileList).apply {
+                border = BorderFactory.createLineBorder(Color(0x32, 0x36, 0x40), 1, true)
+                preferredSize = Dimension(760, 360)
+            }, BorderLayout.CENTER)
+            add(JPanel(FlowLayout(FlowLayout.LEFT, 8, 8)).apply {
+                isOpaque = false
                 add(JButton("Вставить ссылку").apply { addActionListener { pasteLink() } })
-                add(JButton("Импортировать ссылки…").apply { addActionListener { importLinks() } })
-                add(JButton("Импортировать QR-изображение…").apply { addActionListener { importQrImage() } })
+                add(JButton("Импортировать файлы…").apply { addActionListener { importLinks() } })
+                add(JButton("Импортировать QR…").apply { addActionListener { importQrImage() } })
                 add(JButton("Добавить подписку").apply { addActionListener { addSubscription() } })
                 add(JButton("Обновить подписки").apply { addActionListener { refreshSubscriptions() } })
-                add(JButton("Настройки Happ").apply { addActionListener { editHappSpoof() } })
+                add(JButton("Удалить").apply { addActionListener {
+                    profileList.selectedIndices.sortedDescending().forEach(profiles::remove)
+                    saveProfiles()
+                } })
+            }, BorderLayout.NORTH)
+            add(JPanel(FlowLayout(FlowLayout.LEFT, 8, 4)).apply {
+                isOpaque = false
                 add(JButton("Создать Xray-конфиг").apply { addActionListener { generateConfig() } })
                 add(JButton("Создать TUN-конфиг").apply { addActionListener { generateTunConfig() } })
-                add(JButton("Удалить").apply { addActionListener { profileList.selectedIndices.sortedDescending().forEach(profiles::remove); saveProfiles() } })
             }, BorderLayout.SOUTH)
         }
-        center.add(profilePanel, BorderLayout.CENTER)
-        center.add(JPanel().apply {
+
+        val settingsTab = JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            border = BorderFactory.createTitledBorder("Подключение")
-            add(JLabel("Режим")); add(mode)
-            add(JLabel("Движок: Xray (автоматически встроен) или sing-box.exe для TUN"))
+            isOpaque = false
+            border = BorderFactory.createEmptyBorder(18, 8, 12, 8)
+            add(JLabel("Подключение").apply { font = Font("Segoe UI", Font.BOLD, 20); foreground = Color(0xF4, 0xF5, 0xF7) })
+            add(Box.createVerticalStrut(12))
+            add(JLabel("Режим").apply { foreground = Color(0xC8, 0xCC, 0xD3) })
+            add(mode)
+            add(Box.createVerticalStrut(14))
+            add(JLabel("Исполняемый файл движка — Xray встроен автоматически").apply { foreground = Color(0xC8, 0xCC, 0xD3) })
             add(pathRow(enginePath, "exe"))
-            add(JLabel("JSON-конфигурация выбранного движка")); add(pathRow(configPath, "json"))
-            add(JLabel("TUN требует Wintun и запуск от имени администратора."))
-        }, BorderLayout.SOUTH)
-        root.add(center, BorderLayout.CENTER)
-        root.add(JPanel(BorderLayout(8, 8)).apply {
-            status.font = Font("Segoe UI", Font.PLAIN, 15)
-            add(status, BorderLayout.NORTH)
-            add(JPanel(FlowLayout(FlowLayout.RIGHT)).apply {
-                add(JButton("Отключить").apply { addActionListener { disconnect() } })
-                add(JButton("Подключить").apply { addActionListener { connect() } })
-            }, BorderLayout.SOUTH)
+            add(Box.createVerticalStrut(12))
+            add(JLabel("JSON-конфигурация выбранного движка").apply { foreground = Color(0xC8, 0xCC, 0xD3) })
+            add(pathRow(configPath, "json"))
+            add(Box.createVerticalStrut(16))
+            add(JLabel("TUN требует Wintun и запуска приложения от имени администратора.").apply { foreground = Color(0x9A, 0xA0, 0xAA) })
+            add(Box.createVerticalStrut(22))
+            add(JLabel("Подписки").apply { font = Font("Segoe UI", Font.BOLD, 20); foreground = Color(0xF4, 0xF5, 0xF7) })
+            add(Box.createVerticalStrut(8))
+            add(JButton("Настроить имитацию Happ").apply { addActionListener { editHappSpoof() } })
+        }
+
+        tabs.addTab("Главная", homeTab)
+        tabs.addTab("Серверы", profilePanel)
+        tabs.addTab("Настройки", settingsTab)
+        root.add(tabs, BorderLayout.CENTER)
+        root.add(JLabel("Windows · Xray Core").apply {
+            foreground = Color(0x72, 0x78, 0x83)
+            border = BorderFactory.createEmptyBorder(8, 2, 0, 2)
         }, BorderLayout.SOUTH)
         contentPane = root
+
     }
 
     private fun pathRow(field: JTextField, ext: String) = JPanel(BorderLayout(6, 0)).apply {
