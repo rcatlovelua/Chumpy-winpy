@@ -10,7 +10,9 @@ internal class ManagedEngine {
     @Synchronized fun start(executable: File, config: File, tun: Boolean) {
         require(executable.isFile) { "Движок не найден: ${executable.path}" }
         require(config.isFile) { "JSON не найден: ${config.path}" }
-        check(processId?.let(::isProcessRunning) == true || processId == null) { "Движок уже запущен" }
+        val previous = processId
+        if (previous != null && isProcessRunning(previous)) error("Движок уже запущен")
+        processId = null
         if (tun) require(isAdministrator()) { "Для TUN запустите Chumpy от имени администратора." }
 
         val logDir = File(config.parentFile, "logs").apply { mkdirs() }
@@ -33,10 +35,9 @@ internal class ManagedEngine {
             put("CHUMPY_ENGINE_STDERR", stderr.absolutePath)
         }
         val result = launcher.start()
+        check(result.waitFor(15, TimeUnit.SECONDS)) { "Тайм-аут запуска PowerShell." }
         val output = result.inputStream.bufferedReader().readText().trim()
-        check(result.waitFor(15, TimeUnit.SECONDS) && result.exitValue() == 0) {
-            "Не удалось запустить движок скрыто: $output"
-        }
+        check(result.exitValue() == 0) { "Не удалось запустить движок скрыто: $output" }
         val pid = output.lineSequence().lastOrNull()?.trim()?.toLongOrNull()
             ?: error("PowerShell не вернул PID процесса Xray: $output")
         processId = pid
