@@ -53,6 +53,7 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
         size = Dimension(900, 650)
         setLocationRelativeTo(null)
         home.mkdirs()
+        enginePath.text = runCatching { BundledXray.install(home)?.absolutePath.orEmpty() }.getOrDefault("")
         if (profilesFile.isFile) profilesFile.readLines().filter { it.isNotBlank() }.forEach(profiles::addElement)
         if (subscriptionsFile.isFile) subscriptions.addAll(subscriptionsFile.readLines().filter { it.isNotBlank() })
 
@@ -78,7 +79,7 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             border = BorderFactory.createTitledBorder("Подключение")
             add(JLabel("Режим")); add(mode)
-            add(JLabel("Движок: xray.exe для прокси или sing-box.exe для TUN"))
+            add(JLabel("Движок: Xray (автоматически встроен) или sing-box.exe для TUN"))
             add(pathRow(enginePath, "exe"))
             add(JLabel("JSON-конфигурация выбранного движка")); add(pathRow(configPath, "json"))
             add(JLabel("TUN требует Wintun и запуск от имени администратора."))
