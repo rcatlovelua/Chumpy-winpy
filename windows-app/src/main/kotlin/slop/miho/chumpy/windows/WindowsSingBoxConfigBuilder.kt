@@ -7,8 +7,8 @@ import java.io.File
 internal object WindowsSingBoxConfigBuilder {
     fun write(profile: ProfileEntity, directory: File): File {
         require(profile.type != ProfileType.BALANCER) { "Выберите конкретный сервер, не балансировщик." }
-        require(profile.network !in setOf("kcp", "mkcp", "xhttp", "splithttp")) {
-            "Транспорт ${profile.network} пока не поддерживается Windows sing-box-портом."
+        require(profile.network.lowercase() !in setOf("kcp", "mkcp", "xhttp", "splithttp")) {
+            "Транспорт ${profile.network} не поддерживается sing-box в режиме TUN. Переключись на «Системный прокси» и создай Xray-конфиг — Xray поддерживает этот транспорт."
         }
         val outbound = buildJsonObject {
             put("type", when (profile.type) {
