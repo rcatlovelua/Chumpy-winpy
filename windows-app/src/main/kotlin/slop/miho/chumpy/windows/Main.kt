@@ -5,6 +5,7 @@ import java.awt.Component
 import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Font
+import java.awt.Color
 import java.io.File
 import javax.swing.*
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -23,7 +24,8 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
     private val profilesFile = File(home, "profiles.txt")
     private val subscriptionsFile = File(home, "subscriptions.txt")
     private val subscriptions = mutableListOf<String>()
-    private val subscriptionImporter = SubscriptionImporter()
+    private val happSpoof = HappSpoof(home)
+    private val subscriptionImporter = SubscriptionImporter(happSpoof)
     private val profiles = DefaultListModel<String>()
     private val profileList = JList(profiles).apply {
         cellRenderer = object : DefaultListCellRenderer() {
@@ -58,7 +60,18 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
         if (subscriptionsFile.isFile) subscriptions.addAll(subscriptionsFile.readLines().filter { it.isNotBlank() })
 
         val root = JPanel(BorderLayout(12, 12)).apply { border = BorderFactory.createEmptyBorder(18, 18, 18, 18) }
-        root.add(JLabel("CHUMPY", SwingConstants.LEFT).apply { font = Font("Segoe UI", Font.BOLD, 28) }, BorderLayout.NORTH)
+        root.add(JPanel(BorderLayout()).apply {
+            isOpaque = false
+            add(JLabel("Chumpy").apply { font = Font("Segoe UI", Font.BOLD, 30); foreground = Color(0xF2, 0xF4, 0xF8) }, BorderLayout.WEST)
+            add(JPanel(FlowLayout(FlowLayout.RIGHT, 8, 4)).apply {
+                isOpaque = false
+                add(JButton().apply {
+                    fun refreshLabel() { text = if (happSpoof.enabled()) "Happ Spoof · ВКЛ" else "Happ Spoof · ВЫКЛ" }
+                    refreshLabel()
+                    addActionListener { editHappSpoof(); refreshLabel() }
+                })
+            }, BorderLayout.EAST)
+        }, BorderLayout.NORTH)
         val center = JPanel(BorderLayout(10, 10))
         val profilePanel = JPanel(BorderLayout(6, 6)).apply {
             border = BorderFactory.createTitledBorder("Профили и ссылки")
@@ -69,6 +82,7 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
                 add(JButton("Импортировать QR-изображение…").apply { addActionListener { importQrImage() } })
                 add(JButton("Добавить подписку").apply { addActionListener { addSubscription() } })
                 add(JButton("Обновить подписки").apply { addActionListener { refreshSubscriptions() } })
+                add(JButton("Настройки Happ").apply { addActionListener { editHappSpoof() } })
                 add(JButton("Создать Xray-конфиг").apply { addActionListener { generateConfig() } })
                 add(JButton("Создать TUN-конфиг").apply { addActionListener { generateTunConfig() } })
                 add(JButton("Удалить").apply { addActionListener { profileList.selectedIndices.sortedDescending().forEach(profiles::remove); saveProfiles() } })
@@ -106,6 +120,25 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
             }
         }, BorderLayout.EAST)
     }
+    private fun editHappSpoof() {
+        val enabled = JCheckBox("Использовать Happ User-Agent и x-заголовки", happSpoof.enabled())
+        val appVersion = JTextField("3.21.1", 18)
+        val os = JTextField("Android", 18)
+        val osVersion = JTextField("16", 18)
+        val deviceModel = JTextField("Pixel 7 Pro", 18)
+        val locale = JTextField("en", 18)
+        val fields = JPanel(java.awt.GridLayout(0, 2, 8, 8)).apply {
+            add(enabled); add(JLabel("")); add(JLabel("Версия Happ")); add(appVersion)
+            add(JLabel("ОС")); add(os); add(JLabel("Версия ОС")); add(osVersion)
+            add(JLabel("Модель устройства")); add(deviceModel); add(JLabel("Язык")); add(locale)
+        }
+        val result = JOptionPane.showConfirmDialog(this, fields, "Имитация клиента Happ", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE)
+        if (result != JOptionPane.OK_OPTION) return
+        happSpoof.setEnabled(enabled.isSelected)
+        happSpoof.update(appVersion.text, os.text, osVersion.text, deviceModel.text, locale.text)
+        status.text = if (enabled.isSelected) "Подписки будут загружаться как Happ" else "Happ Spoof отключён; используется Chumpy/v2rayNG User-Agent"
+    }
+
     private fun addSubscription() {
         val url = JOptionPane.showInputDialog(this, "URL подписки:")?.trim().orEmpty()
         if (url.isBlank()) return
