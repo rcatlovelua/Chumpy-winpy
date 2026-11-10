@@ -67,6 +67,25 @@ internal class HappSpoof(private val home: File) {
     }
 
     @Synchronized
+    fun currentSettings(): Fingerprint {
+        val props = load()
+        fun stable(key: String, create: () -> String): String {
+            val old = props.getProperty(key)?.takeIf { it.isNotBlank() }
+            if (old != null) return old
+            return create().also { props.setProperty(key, it) }
+        }
+        return Fingerprint(
+            appVersion = props.getProperty("appVersion").orEmpty().ifBlank { "3.21.1" },
+            os = props.getProperty("os").orEmpty().ifBlank { "Android" },
+            osVersion = props.getProperty("osVersion").orEmpty().ifBlank { "16" },
+            deviceModel = props.getProperty("deviceModel").orEmpty().ifBlank { "Pixel 7 Pro" },
+            locale = props.getProperty("locale").orEmpty().ifBlank { "en" },
+            userId = stable("userId", ::randomUserId),
+            hwid = stable("hwid", ::randomHwid),
+        ).also { save(props) }
+    }
+
+    @Synchronized
     fun update(
         appVersion: String,
         os: String,
