@@ -96,6 +96,11 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
             background = bg
             border = BorderFactory.createEmptyBorder(28, 34, 18, 34)
         }
+        val tabs = JTabbedPane()
+        tabs.setUI(object : javax.swing.plaf.basic.BasicTabbedPaneUI() {
+            override fun calculateTabAreaHeight(tabPlacement: Int, runCount: Int, maxTabHeight: Int): Int = 0
+            override fun paintTabArea(g: java.awt.Graphics, tabPlacement: Int, selectedIndex: Int) {}
+        })
         val header = JPanel(BorderLayout()).apply {
             isOpaque = false
             add(JPanel().apply {
@@ -110,12 +115,6 @@ private class ChumpyWindow : JFrame("Chumpy — Windows") {
             }, BorderLayout.EAST)
         }
         root.add(header, BorderLayout.NORTH)
-
-        val tabs = JTabbedPane()
-        tabs.setUI(object : javax.swing.plaf.basic.BasicTabbedPaneUI() {
-            override fun calculateTabAreaHeight(tabPlacement: Int, runCount: Int, maxTabHeight: Int): Int = 0
-            override fun paintTabArea(g: java.awt.Graphics, tabPlacement: Int, rects: Array<out java.awt.Rectangle>, selectedIndex: Int) {}
-        })
 
         val homeTab = JPanel(BorderLayout()).apply {
             background = bg
